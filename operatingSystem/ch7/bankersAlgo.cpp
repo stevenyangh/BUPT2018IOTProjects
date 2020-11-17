@@ -4,28 +4,22 @@
 
 #include <iostream>
 #include <string>
-#include <random>
+#include <thread>
 
-#define NUMBER_OF_CUSTOMERS 5
-#define NUMBER_OF_RESOURCES 3
+#include "customer.cpp"
 
 #define ERROR_ARG_NUMBER 1
 
-int available[NUMBER_OF_RESOURCES];
-int maximum[NUMBER_OF_CUSTOMERS][NUMBER_OF_RESOURCES];
-int allocation[NUMBER_OF_CUSTOMERS][NUMBER_OF_RESOURCES];
-/* need = maxium - allocation */
-int need[NUMBER_OF_CUSTOMERS][NUMBER_OF_RESOURCES];
+std::thread tl[NUMBER_OF_CUSTOMERS];
 
-using namespace std;
 int main(int argc, char *argv[])
 {
   // parse the paremeters
   if (argc != NUMBER_OF_RESOURCES)
   {
-    cout << "error, parameter number should be "
+    std::cout << "error, parameter number should be "
          << NUMBER_OF_RESOURCES << ", but gives "
-         << argc << endl;
+         << argc << std::endl;
     return ERROR_ARG_NUMBER;
   }
   else
@@ -35,45 +29,20 @@ int main(int argc, char *argv[])
       available[i] = atoi(argv[i]);
       if (available[i] == 0)
       {
-        cout << "error, can't parse parameter["
+        std::cout << "error, can't parse parameter["
              << i << "] range (0, " << NUMBER_OF_RESOURCES
-             << ")." << endl;
+             << ")." << std::endl;
         return ERROR_ARG_NUMBER;
       }
+      std::random_device rd;
+      std::mt19937_64 randGenerator(rd());
+      randgen = randGenerator;
+      
     }
   }
 }
 
-// a = a + b
-void addList(int n, int a[], int b[])
-{
-  for (int i = 0; i < n; i++)
-  {
-    a[i] += b[i];
-  }
-}
 
-// a = a - b
-void subList(int n, int a[], int b[])
-{
-  for (int i = 0; i < n; i++)
-  {
-    a[i] -= b[i];
-  }
-}
-
-// true for a less than b(a <= b), false otherwise
-bool lessThanList(int n, int a[], int b[])
-{
-  int i = 0;
-  bool flag = true;
-  while (i < n && flag)
-  {
-    flag = a[i] <= b[i];
-    i++;
-  }
-  return flag;
-}
 
 bool isSafeState()
 {
@@ -109,36 +78,3 @@ bool isSafeState()
   return trueCount == NUMBER_OF_CUSTOMERS;
 }
 
-int request_resources(int procID, int request[])
-{
-  if (lessThanList(NUMBER_OF_RESOURCES, request, need[procID]))
-  {
-    if (lessThanList(NUMBER_OF_RESOURCES, request, available))
-    {
-      subList(NUMBER_OF_RESOURCES, available, request);
-      addList(NUMBER_OF_RESOURCES, allocation[procID], request);
-      subList(NUMBER_OF_RESOURCES, need[procID], request);
-      return 0;
-    }
-    else
-    {
-      // wait
-      return 1;
-    }
-  }
-  else
-  {
-    // error
-    cout << "Error, requirement exceed system capacity" << endl;
-    return 1;
-  }
-}
-
-int release_resources(int procID, int release[])
-{
-  // we assume releasing resource always success.
-  addList(NUMBER_OF_RESOURCES, available, request);
-  subList(NUMBER_OF_RESOURCES, allocation[procID], request);
-  addList(NUMBER_OF_RESOURCES, need[procID], request);
-  return 0;
-}
