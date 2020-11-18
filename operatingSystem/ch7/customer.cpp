@@ -5,21 +5,60 @@
 std::mutex randomiz_mutex;
 std::mutex resource_mutex;
 
-bool customer::pushRequest(int request[])
+void customer::operator() ()
+{
+    if(this->entry.empty())
+    {
+        randomiz_mutex.lock();
+        // rand for vec
+        randomiz_mutex.unlock();
+    }
+    else if(this->entry.size() < QUEUE_DEPTH)
+    {
+        if(resource_mutex.try_lock())
+        {
+            // do things
+            resource_mutex.unlock();
+        }
+        else
+        {
+            randomiz_mutex.lock();
+            // rand for vec
+            randomiz_mutex.unlock();
+        }
+    }
+    else
+    {
+        resource_mutex.lock();
+        // do things
+        resource_mutex.unlock();
+    }
+    
+    
+}
+
+bool customer::setupRequest(int request[])
 {
     for (int i = 0; i < NUMBER_OF_RESOURCES; i++)
     {
         std::uniform_int_distribution<int> dist(0, need[this->procID][i]);
         request[i] = dist(randgen);
-
     }
+    // we assume setup always success.
+    return true;
 }
 
 int *customer::getRequest()
 {
     int prev = (this->entry).front();
-    this->poolValid[prev] = false;
-    return 0;
+    if(this->poolValid[prev])
+    {
+        return this->taskPool[prev];
+    }
+    else
+    {
+        return nullptr;
+    }
 }
 
 int request_resources(int procID, int request[])

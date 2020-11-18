@@ -37,10 +37,11 @@ private:
     std::queue<int> entry;
     bool poolValid[QUEUE_DEPTH];
     int taskPool[QUEUE_DEPTH][NUMBER_OF_RESOURCES];
+
     bool setupRequest(int request[]);
     int pushRequest();
     int *getRequest(); 
-    void popRequest();
+    bool popRequest();
 };
 
 // a = a + b
