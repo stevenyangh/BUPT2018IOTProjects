@@ -1,6 +1,9 @@
 # emacs
 *~
 
+# vscode
+*.vscode/
+
 # Prerequisites
 *.d
 

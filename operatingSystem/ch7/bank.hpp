@@ -5,9 +5,9 @@
 #define NUMBER_OF_RESOURCES 3
 
 #define QUEUE_DEPTH 5
-#define DEFAULT_POOLVALID                 \
-    {                                     \
-        false, false, false, false, false \
+#define DEFAULT_POOLVALID            \
+    {                                \
+        true, true, true, true, true \
     }
 #define DEFAULT_TASK_POOL                                       \
     {                                                           \
@@ -39,8 +39,8 @@ private:
     int taskPool[QUEUE_DEPTH][NUMBER_OF_RESOURCES];
 
     bool setupRequest(int request[]);
-    int pushRequest();
-    int *getRequest(); 
+    int pushRequest(int prev);
+    int *getRequest();
     bool popRequest();
 };
 
@@ -73,4 +73,22 @@ bool lessThanList(int n, int a[], int b[])
         i++;
     }
     return flag;
+}
+
+int searchList(bool searchFor, int n, bool a[])
+{
+    int i;
+    bool suc;
+    for(i = 0, suc = false; i < n && !suc; i++)
+    {
+        suc = a[i] == searchFor;
+    }
+    if(suc)
+    {
+        return i - 1;
+    }
+    else
+    {
+        return -1;
+    }
 }

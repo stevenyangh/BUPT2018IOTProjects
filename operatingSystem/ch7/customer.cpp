@@ -5,25 +5,29 @@
 std::mutex randomiz_mutex;
 std::mutex resource_mutex;
 
-void customer::operator() ()
+void customer::operator()()
 {
-    if(this->entry.empty())
-    {
+    if (this->entry.empty())
+    { 
+        int prev = searchList(true, QUEUE_DEPTH, this->poolValid);
         randomiz_mutex.lock();
         // rand for vec
+        pushRequest(prev);
         randomiz_mutex.unlock();
     }
-    else if(this->entry.size() < QUEUE_DEPTH)
+    else if (this->entry.size() < QUEUE_DEPTH)
     {
-        if(resource_mutex.try_lock())
+        if (resource_mutex.try_lock())
         {
             // do things
             resource_mutex.unlock();
         }
         else
         {
+            int prev = searchList(true, QUEUE_DEPTH, this->poolValid);
             randomiz_mutex.lock();
             // rand for vec
+            pushRequest(prev);
             randomiz_mutex.unlock();
         }
     }
@@ -33,8 +37,6 @@ void customer::operator() ()
         // do things
         resource_mutex.unlock();
     }
-    
-    
 }
 
 bool customer::setupRequest(int request[])
@@ -48,10 +50,21 @@ bool customer::setupRequest(int request[])
     return true;
 }
 
+int customer::pushRequest(int prev)
+{
+    if(prev >= 0)
+    {
+        this->entry.push(prev);
+        this->poolValid[prev] = false;
+        setupRequest(this->taskPool[prev]);
+    }
+    return prev;
+}
+
 int *customer::getRequest()
 {
     int prev = (this->entry).front();
-    if(this->poolValid[prev])
+    if (this->poolValid[prev])
     {
         return this->taskPool[prev];
     }
