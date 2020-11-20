@@ -1,11 +1,12 @@
 #include <iostream>
+
 #include <thread>
 #include <mutex>
 #include "./bank.hpp"
 
 std::mutex randomiz_mutex;
 std::mutex resource_mutex;
-
+std::mutex cout_mutex;
 class customer
 {
 public:
@@ -13,7 +14,7 @@ public:
     {
         this->ID = ID;
         this->taskdone = 0;
-        for(int i = 0; i < QUEUE_DEPTH; i++)
+        for (int i = 0; i < QUEUE_DEPTH; i++)
         {
             poolValid[i] = true;
         }
@@ -35,6 +36,61 @@ private:
     int pushRequest(int prev);
     int *getFrontRequest();
     bool popRequest();
+    void err(const std::string &str)
+    {
+        cout_mutex.lock();
+        std::cout << str << std::endl;
+        cout_mutex.unlock();
+    }
+    std::string showAvail()
+    {
+        std::string str = "available {\n";
+        for (int i = 0; i < NUMBER_OF_RESOURCES; i++)
+        {
+            str += std::to_string(available[i]);
+            str += ", ";
+        }
+        str += "}";
+        return str;
+    }
+    std::string showAlloc()
+    {
+        std::string str = "allocation {\n";
+        for (int i = 0; i < NUMBER_OF_CUSTOMERS; i++)
+        {
+            str += "    ";
+            for (int j = 0; j < NUMBER_OF_RESOURCES; j++)
+            {
+                str += std::to_string(allocation[i][j]);
+                str += ", ";
+            }
+            str += "\n";
+        }
+        str += "}";
+        return str;
+    }
+    std::string showMax()
+    {
+        std::string str = "maximum {\n";
+        for (int i = 0; i < NUMBER_OF_CUSTOMERS; i++)
+        {
+            str += "    ";
+            for (int j = 0; j < NUMBER_OF_RESOURCES; j++)
+            {
+                str += std::to_string(maximum[i][j]);
+                str += ", ";
+            }
+            str += "\n";
+        }
+        str += "}";
+        return str;
+    }
+    std::string showWork()
+    {
+        return "customer proc[" + std::to_string(this->ID) + "] have work{" +
+               std::to_string(this->nextTask[0]) + ", " + std::to_string(this->nextTask[1]) +
+               ", " + std::to_string(this->nextTask[2]) + "}";
+    }
 };
 
 void customer::operator()()
@@ -51,9 +107,33 @@ void customer::operator()()
         {
             randomiz_mutex.lock();
             setupRequest();
-            std::cout << "customer proc[" << this->ID << "] wait for work{"
-                      << this->nextTask[0] << this->nextTask[1] << this->nextTask[2] << "}" << std::endl;
+            bool allzero = true;
+            for (int i = 0; i < NUMBER_OF_RESOURCES && allzero; i++)
+            {
+                if (this->nextTask[i] != 0)
+                {
+                    allzero = false;
+                }
+            }
+            if (allzero)
+            {
+                addList(NUMBER_OF_RESOURCES, this->nextTask, need[this->ID]);
+                for (int i = 0; i < NUMBER_OF_RESOURCES && allzero; i++)
+                {
+                    if (this->nextTask[i] != 0)
+                    {
+                        allzero = false;
+                    }
+                }
+                if (allzero)
+                {
+                    return;
+                }
+            }
             randomiz_mutex.unlock();
+
+            customer::err(showWork());
+
             prevDone = false;
             prev = searchBoolList(true, QUEUE_DEPTH, this->poolValid);
         }
@@ -61,22 +141,37 @@ void customer::operator()()
         if (prev >= 0)
         {
             resource_mutex.lock();
-            request_resources(this->ID, this->nextTask);
-            if (isSafeState())
+            if (request_resources(this->ID, this->nextTask) != 0)
             {
-                // for illustration
-                std::cout << allocation << std::endl;
+                count++;
 
-                pushRequest(prev);
-                prevDone = true;
-                taskdone++;
+                if (count == 1)
+                {
+                    customer::err(showWork() + ", proc[" + std::to_string(this->ID) + "] need to wait");
+                }
             }
             else
             {
-                // for illustration
-                count++;
-                
-                release_resources(this->ID, this->nextTask); // roll back
+                if (isSafeState())
+                {
+                    pushRequest(prev);
+
+                    customer::err(showWork() + "proc [" + std::to_string(this->ID) + "] on, \n" + showAlloc());
+                    count = 0;
+                    prevDone = true;
+                    taskdone++;
+                }
+                else
+                {
+                    // for illustration
+                    count++;
+                    if (count == 1)
+                    {
+                        customer::err(showWork() + "proc [" + std::to_string(this->ID) + "] not safe, \n" + showAlloc() + "\n" + showMax());
+                    }
+
+                    release_resources(this->ID, this->nextTask); // roll back
+                }
             }
             resource_mutex.unlock();
         }
@@ -84,11 +179,11 @@ void customer::operator()()
         {
             // for illustration
             count++;
-            std::cout << "error, not much queue." << std::endl;
+            customer::err("error, not much queue.");
         }
 
         // for illustration
-        if (count <= 5)
+        if (count >= 5)
         {
             return;
         }
@@ -161,7 +256,7 @@ int customer::request_resources(int procID, int request[])
     else
     {
         // error
-        std::cout << "Error, requirement exceed system capacity" << std::endl;
+        customer::err("Error, requirement exceed system capacity");
         return 1;
     }
 }

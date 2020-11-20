@@ -1,11 +1,6 @@
 /*
   Be aware that the the arguments should not be 0
  */
-
-
-#include <string>
-
-
 #include "./customer.cpp"
 
 #define ERROR_ARG_NUMBER 1
@@ -24,8 +19,8 @@ int main(int argc, char *argv[])
     {
         for (int i = 1; i < argc; i++)
         {
-            available[i] = atoi(argv[i]);
-            if (available[i] == 0)
+            available[i - 1] = atoi(argv[i]);
+            if (available[i - 1] == 0)
             {
                 std::cout << "error, can't parse parameter["
                           << i << "] range (0, " << NUMBER_OF_RESOURCES
@@ -33,11 +28,12 @@ int main(int argc, char *argv[])
                 return ERROR_ARG_NUMBER;
             }
         }
-std::cout << "here." << std::endl;
-        // setup maxium, here we use average + 1
+
+        // setup maxium
         for(int i = 0; i < NUMBER_OF_RESOURCES; i++)
         {
-            int num = available[i] / NUMBER_OF_CUSTOMERS + 1;
+            //std::cout << available[i] << std::endl;
+            int num = available[i] / NUMBER_OF_CUSTOMERS + 3;
             for(int j = 0; j < NUMBER_OF_CUSTOMERS; j++)
             {
                 maximum[j][i] = num;

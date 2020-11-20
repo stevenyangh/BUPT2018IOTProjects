@@ -1,10 +1,11 @@
 #include <random>
 #include <queue>
+#include <string>
 
 #define NUMBER_OF_CUSTOMERS 5
 #define NUMBER_OF_RESOURCES 3
 
-#define NUMBER_OF_TASKS 5
+#define NUMBER_OF_TASKS 10
 
 // In theory, queue depth should equal number of tasks, but in practice, queue depth can be smaller
 #define QUEUE_DEPTH 100
