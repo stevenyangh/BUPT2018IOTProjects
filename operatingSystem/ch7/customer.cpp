@@ -1,50 +1,106 @@
 #include <iostream>
+#include <thread>
 #include <mutex>
-#include "bank.hpp"
+#include "./bank.hpp"
 
 std::mutex randomiz_mutex;
 std::mutex resource_mutex;
 
+class customer
+{
+public:
+    customer(int ID)
+    {
+        this->ID = ID;
+        this->taskdone = 0;
+        for(int i = 0; i < QUEUE_DEPTH; i++)
+        {
+            poolValid[i] = true;
+        }
+    }
+
+    void operator()();
+    int request_resources(int procID, int request[]);
+    int release_resources(int procID, int release[]);
+
+private:
+    int ID;
+    std::queue<int> entry;
+    bool poolValid[QUEUE_DEPTH];
+    int taskPool[QUEUE_DEPTH][NUMBER_OF_RESOURCES];
+    int nextTask[NUMBER_OF_RESOURCES];
+    int taskdone;
+
+    bool setupRequest();
+    int pushRequest(int prev);
+    int *getFrontRequest();
+    bool popRequest();
+};
+
 void customer::operator()()
 {
-    if (this->entry.empty())
-    { 
-        int prev = searchList(true, QUEUE_DEPTH, this->poolValid);
-        randomiz_mutex.lock();
-        // rand for vec
-        pushRequest(prev);
-        randomiz_mutex.unlock();
-    }
-    else if (this->entry.size() < QUEUE_DEPTH)
+    bool prevDone = true;
+    int prev = 0;
+
+    // for illustration
+    int count = 0;
+
+    while (this->taskdone < NUMBER_OF_TASKS)
     {
-        if (resource_mutex.try_lock())
+        if (prevDone)
         {
-            // do things
+            randomiz_mutex.lock();
+            setupRequest();
+            std::cout << "customer proc[" << this->ID << "] wait for work{"
+                      << this->nextTask[0] << this->nextTask[1] << this->nextTask[2] << "}" << std::endl;
+            randomiz_mutex.unlock();
+            prevDone = false;
+            prev = searchBoolList(true, QUEUE_DEPTH, this->poolValid);
+        }
+
+        if (prev >= 0)
+        {
+            resource_mutex.lock();
+            request_resources(this->ID, this->nextTask);
+            if (isSafeState())
+            {
+                // for illustration
+                std::cout << allocation << std::endl;
+
+                pushRequest(prev);
+                prevDone = true;
+                taskdone++;
+            }
+            else
+            {
+                // for illustration
+                count++;
+                
+                release_resources(this->ID, this->nextTask); // roll back
+            }
             resource_mutex.unlock();
         }
         else
         {
-            int prev = searchList(true, QUEUE_DEPTH, this->poolValid);
-            randomiz_mutex.lock();
-            // rand for vec
-            pushRequest(prev);
-            randomiz_mutex.unlock();
+            // for illustration
+            count++;
+            std::cout << "error, not much queue." << std::endl;
         }
-    }
-    else
-    {
-        resource_mutex.lock();
-        // do things
-        resource_mutex.unlock();
+
+        // for illustration
+        if (count <= 5)
+        {
+            return;
+        }
     }
 }
 
-bool customer::setupRequest(int request[])
+bool customer::setupRequest()
 {
     for (int i = 0; i < NUMBER_OF_RESOURCES; i++)
     {
-        std::uniform_int_distribution<int> dist(0, need[this->procID][i]);
-        request[i] = dist(randgen);
+        std::uniform_int_distribution<int> dist(0, need[this->ID][i]);
+        this->nextTask[i] = dist(randgen);
     }
     // we assume setup always success.
     return true;
@@ -52,16 +108,19 @@ bool customer::setupRequest(int request[])
 
 int customer::pushRequest(int prev)
 {
-    if(prev >= 0)
+    if (prev >= 0)
     {
         this->entry.push(prev);
         this->poolValid[prev] = false;
-        setupRequest(this->taskPool[prev]);
+        for (int i = 0; i < NUMBER_OF_RESOURCES; i++)
+        {
+            this->taskPool[prev][i] = this->nextTask[i];
+        }
     }
     return prev;
 }
 
-int *customer::getRequest()
+int *customer::getFrontRequest()
 {
     int prev = (this->entry).front();
     if (this->poolValid[prev])
@@ -74,7 +133,15 @@ int *customer::getRequest()
     }
 }
 
-int request_resources(int procID, int request[])
+bool customer::popRequest()
+{
+    int prev = (this->entry).front();
+    this->poolValid[prev] = true;
+    this->entry.pop();
+    return true;
+}
+
+int customer::request_resources(int procID, int request[])
 {
     if (lessThanList(NUMBER_OF_RESOURCES, request, need[procID]))
     {
@@ -99,7 +166,7 @@ int request_resources(int procID, int request[])
     }
 }
 
-int release_resources(int procID, int release[])
+int customer::release_resources(int procID, int release[])
 {
     // we assume releasing resource always success.
     addList(NUMBER_OF_RESOURCES, available, release);
