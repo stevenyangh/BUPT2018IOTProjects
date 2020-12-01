@@ -3,6 +3,7 @@
  *
  */
 
+import java.util.LinkedList;
 import java.util.Queue;
 
 public class FIFO extends ReplacementAlgorithm
@@ -20,7 +21,7 @@ public class FIFO extends ReplacementAlgorithm
 
 	/**
 	 * insert a page into a page frame.
-	 * @param int pageNumber - the page number being inserted.
+	 * @param pageNumber - the page number being inserted.
 	 */
 	public void insert(int pageNumber) {
 		frameList.insert(pageNumber);
@@ -28,7 +29,7 @@ public class FIFO extends ReplacementAlgorithm
 		
 	class FIFOList
 	{
-		Queue<int> 
+		Queue<Integer> que = new LinkedList<>();
 		// the page frame list
 		int[] pageFrameList;
 
@@ -48,10 +49,53 @@ public class FIFO extends ReplacementAlgorithm
 		 *	inserted into the page frame list.
 		 */
 		void insert(int pageNumber) {
-			if(elementCount < pageFrameCount)
+			//*
+			System.out.println("\n=======================================================");
+			//*/
+			if(!search(pageNumber))
 			{
-				pageFrameList[elementCount];
+				pageFaultCount++;
+				//*
+				System.out.print("Page " + pageNumber + " is not in the frame, ");
+				//*/
+				if(elementCount < pageFrameCount)
+				{
+					pageFrameList[elementCount] = pageNumber;
+					System.out.println(
+							que.offer(elementCount)
+					)
+					;
+
+					elementCount++;
+					//*
+					System.out.println("have space, add page to pageFrameList[" + (elementCount - 1) + "].");
+					System.out.println("PageFrameList: {");
+					System.out.print("  ");
+					dump();
+					System.out.println("\n}");
+					//*/
+				} else {
+					System.out.println(que.peek());
+					pageFrameList[que.peek()] = pageNumber;
+					//*
+					System.out.println("no space, pop and push pageFrameList[" + que.peek() + "].");
+					System.out.println("PageFrameList: {");
+					System.out.print("  ");
+					dump();
+					System.out.println("\n}");
+					//*/
+					que.offer(que.poll());
+				}
 			}
+			//*
+			else {
+				System.out.println("PageFrameList: {");
+				System.out.print("  ");
+				dump();
+				System.out.println("\n}");
+				System.out.println("Found page " + pageNumber + " at frameList[" + searchIndex(pageNumber) + "].");
+			}
+			//*/
         }
 
 		// dump the page frames
@@ -76,6 +120,24 @@ public class FIFO extends ReplacementAlgorithm
 				}
 			}
 			return returnVal;
+		}
+
+		// The following functions are only for illustration, should be commented in practice.
+
+		/**
+		 * Search for index of the page via pageNumber in pageFrameList, only for illustration.
+		 * !!!Should only be used when the page is already in the frame!!!
+		 * @param pageNumber
+		 * @return an integer from 0 to pageFrameList.length
+		 * @return -1 if not found
+		 */
+		int searchIndex(int pageNumber) {
+			for(int i = 0; i < pageFrameList.length; i++) {
+				if(pageNumber == pageFrameList[i]) {
+					return i;
+				}
+			}
+			return -1;
 		}
 	}
 }

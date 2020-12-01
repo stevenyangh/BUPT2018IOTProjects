@@ -13,24 +13,24 @@ public class Test
             System.exit(-1);
         }
 
-		PageGenerator ref = new PageGenerator(new Integer(args[0]).intValue());
+		PageGenerator ref = new PageGenerator(Integer.parseInt(args[0]));
 
 		int[] referenceString = ref.getReferenceString();
 
-		/** Use either the FIFO or LRU algorithms */
-		ReplacementAlgorithm fifo = new FIFO(new Integer(args[1]).intValue());
-		ReplacementAlgorithm lru = new LRU(new Integer(args[1]).intValue());
+		/* Use either the FIFO or LRU algorithms */
+		ReplacementAlgorithm fifo = new FIFO(Integer.parseInt(args[1]));
+		ReplacementAlgorithm lru = new LRU(Integer.parseInt(args[1]));
 
 		// output a message when inserting a page
-		for (int i = 0; i < referenceString.length; i++) {
-			//System.out.println("inserting " + referenceString[i]);
-			lru.insert(referenceString[i]);
+		for (int j : referenceString) {
+			System.out.println("inserting " + j);
+			lru.insert(j);
 		}
 
 		// output a message when inserting a page
-		for (int i = 0; i < referenceString.length; i++) {
-			//System.out.println("inserting " + referenceString[i]);
-			fifo.insert(referenceString[i]);
+		for (int j : referenceString) {
+			System.out.println("inserting " + j);
+			fifo.insert(j);
 		}
 
 		// report the total number of page faults
